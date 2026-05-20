@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile all Java",
+      "type": "shell",
+      "command": "javac --release 17 -encoding UTF-8 -d out src\\*.java",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$javac"
+    },
+    {
+      "label": "run visual debugger",
+      "type": "shell",
+      "command": "java -cp out ArenaUiMain",
+      "dependsOn": "compile all Java",
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "run console match",
+      "type": "shell",
+      "command": "java -cp out Main",
+      "dependsOn": "compile all Java",
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    }
+  ]
+}

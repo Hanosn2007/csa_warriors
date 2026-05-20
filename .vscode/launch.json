@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Visual Debugger",
+      "request": "launch",
+      "mainClass": "ArenaUiMain",
+      "classPaths": [
+        "${workspaceFolder}/out"
+      ],
+      "preLaunchTask": "compile all Java",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Console Match",
+      "request": "launch",
+      "mainClass": "Main",
+      "classPaths": [
+        "${workspaceFolder}/out"
+      ],
+      "preLaunchTask": "compile all Java",
+      "console": "integratedTerminal"
+    }
+  ]
+}
