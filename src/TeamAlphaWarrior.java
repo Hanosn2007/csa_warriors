@@ -73,7 +73,8 @@ public class TeamAlphaWarrior extends Warrior {
                 Position Enemy = state.findWeakestEnemy(self).getPosition();
             }
             case FindPowerUp: {
-
+                System.out.println("");
+                System.out.println("666");
             }
         }
 
