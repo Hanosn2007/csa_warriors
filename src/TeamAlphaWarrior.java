@@ -75,6 +75,7 @@ public class TeamAlphaWarrior extends Warrior {
             case FindPowerUp: {
                 System.out.println("999");
                 System.out.println("666");
+                System.out.println("hansonzhuanshu");
             }
         }
 
