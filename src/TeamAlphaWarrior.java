@@ -5,8 +5,6 @@
 // 本文件中标有“完全不用修改”的位置保持原样。
 // 主要修改区域是 chooseAction 方法中的“策略区”。
 // ================================================================
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 // ==================== 完全不用修改：类声明 ====================
@@ -25,12 +23,84 @@ public class TeamAlphaWarrior extends Warrior {
         super("Team Alpha666");
     }
 
+    static class Block {
+        private final int row;
+        private final int col;
+        private final int step;
+        private final int dist;
+        private final int cost;
+        private final Block superBlock;
+
+        public Block(int row, int col, int step, int dist, Block superBlock) {
+            this.row = row;
+            this.col = col;
+            this.step = step;
+            this.dist = dist;
+            this.superBlock = superBlock;
+            this.cost = step + dist;
+        }
+        public int getRow() {
+            return row;
+        }
+        public int getCol() {
+            return col;
+        }
+    }
+
+    static class MyPriorityQueue {
+        private final ArrayList<Block> blocks =  new ArrayList<>();
+        public MyPriorityQueue() {
+            blocks.add(new Block(0,0,0,Integer.MAX_VALUE,null));
+        }
+        public void add(Block block) throws InterruptedException {
+            for (int i = 0; i < blocks.size(); i++){
+                if (block.cost < blocks.get(i).cost){
+                    blocks.add(i, block);
+                    break;
+                }
+            }
+        }
+        public Block get(){
+            if (blocks.size() == 1){
+                return null;
+            }
+            return blocks.remove(0);
+        }
+        public boolean empty(){
+            return blocks.size() == 1;
+        }
+    }
+
+    static int calcDistance(Position pos1, Position pos2) {
+        return Math.abs(pos1.getRow() - pos2.getRow()) + Math.abs(pos1.getCol() - pos2.getCol());
+    }
+
+    static Position[] aStar(GameState state, Position start, Position goal){
+        MyPriorityQueue frontier = new MyPriorityQueue();
+
+        return null;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // ==================== 完全不用修改：方法声明 ====================
     // 游戏每次轮到这个战士行动时，都会自动调用 chooseAction。
     // state 表示当前地图、敌人、队友、治疗点和道具。
     // self 表示这个战士自己。
     @Override
-    public Action chooseAction(GameState state, UnitInfo self) {
+    public Action chooseAction(GameState state, UnitInfo self) throws InterruptedException {
 
         // ================================================================
         // 策略区开始：这里是主要修改的位置。
@@ -49,42 +119,29 @@ public class TeamAlphaWarrior extends Warrior {
         // 每一种情况最后都要 return 一个 Action。
         // ================================================================
 
-
-
         enum State {FindEnemy, FindPowerUp, Attack, Escape, StayAway}
         State curState = State.FindPowerUp;
         switch (curState) {
             case FindEnemy: {
-                class Block {
-                    private Position blockPos;
-                    private final int g;
-                    private final int h;
-                    private final int f;
-
-                    public Block(Position pos, int g, int h, int f) {
-                        this.blockPos = pos;
-                        this.g = g;
-                        this.h = h;
-                        this.f = f;
-                    }
-
-
-                }
                 Position Enemy = state.findWeakestEnemy(self).getPosition();
             }
             case FindPowerUp: {
-                System.out.println("999");
-                System.out.println("666");
-                System.out.println("hansonzhuanshu");
+                MyPriorityQueue frontier = new MyPriorityQueue();
+                for (int i = 0; i < 10; i ++) {
+                    frontier.add(new Block(1, 1, 0, (int) (Math.random() * 100), null));
+                }
+                Block curBlock;
+                int index = 0;
+                while(!frontier.empty()){
+                    curBlock = frontier.get();
+                    System.out.println("index" + index + "cost" + curBlock.cost);
+                    index++;
+                }
+
+
             }
         }
-
-        System.out.println(state.getLivingEnemies(self).get(0).getHealth());
-
-
-        return Action.attack(state.findNearestEnemy(self).getId());
-
-
+        return Action.defend();
         // 1. 如果攻击范围内有残血敌人，先攻击它。
 //        UnitInfo target = state.findLowestHealthEnemyInRange(self);
 //        if (target != null) {
