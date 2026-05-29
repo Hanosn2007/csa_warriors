@@ -157,7 +157,7 @@ public class ProjectToolsPanel extends JPanel {
 
     private void refreshFiles() {
         fileModel.clear();
-        addIfExists("你的策略模板", "src/TeamAlphaWarrior.java", "主要修改这个文件中的策略区域。");
+        addIfExists("你的策略模板", "src/TeamHansonWarrior.java", "主要修改这个文件中的策略区域。");
         addWarriorExamples();
         addIfExists("使用指南", "Guide.html", "查看项目规则、运行方式、评分规则和提交内容。");
         addIfExists("项目说明", "README.html", "查看项目整体说明。");
@@ -177,7 +177,7 @@ public class ProjectToolsPanel extends JPanel {
                 File file = new File(dir, name);
                 return name.endsWith(".java")
                         && !name.equals("Warrior.java")
-                        && !name.equals("TeamAlphaWarrior.java")
+                        && !name.equals("TeamHansonWarrior.java")
                         && !name.equals("MyWarrior.java")
                         && isStrategySource(file);
             }

@@ -38,5 +38,5 @@ public abstract class Warrior {
     // 策略的核心方法。
     // 每次行动必须返回一个 Action，例如移动、攻击、防御或等待。
     // 只能通过 state 和 self 读取公开信息，不能直接修改游戏内部状态。
-    public abstract Action chooseAction(GameState state, UnitInfo self);
+    public abstract Action chooseAction(GameState state, UnitInfo self) throws InterruptedException;
 }
