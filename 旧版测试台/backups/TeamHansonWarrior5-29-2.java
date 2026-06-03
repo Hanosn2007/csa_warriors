@@ -1,0 +1,555 @@
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.PriorityQueue;
+
+public class TeamHansonWarrior extends Warrior {
+    public TeamHansonWarrior() {
+        super("Hanson team");
+    }
+
+    private Action moveToPosition(GameState state, UnitInfo self, Position target, UnitInfo ignoredEnemy) {
+        if (target == null) {
+            return Action.defend();
+        }
+        if (self.getPosition().equals(target)) {
+            return Action.defend();
+        }
+        AStar aStar = new AStar(state, self, ignoredEnemy);
+        aStar.addEnemyCost();
+
+        Block end = aStar.findPath(target, self.getPosition());
+        //保证astar确实找到了目标，没有的话就保守前进
+        if (end != null && end.getParent() != null) {
+            Block next = end.getParent();
+            return state.moveToward(self, new Position(next.getRow(), next.getCol()));
+        }
+        return state.moveToward(self, target);
+    }
+    private UnitInfo findBestEnemyInRange(GameState state, UnitInfo self, int range, boolean mustKill) {
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+
+        UnitInfo bestEnemy = null;
+        double bestValue = -9999;
+
+        for (UnitInfo enemy : enemies) {
+            if (self.distanceTo(enemy) > range) {
+                continue;
+            }
+
+            if (mustKill && self.getAttackPower() < enemy.getHealth()) {
+                continue;
+            }
+
+            double value = unitRate.attackValue(self, enemy);
+            if (bestEnemy == null || value > bestValue) {
+                bestEnemy = enemy;
+                bestValue = value;
+            }
+        }
+
+        return bestEnemy;
+    }
+
+    @Override
+    public Action chooseAction(GameState state, UnitInfo self) {
+        ArrayList<Choice> choices = new ArrayList<Choice>();
+
+        addAttackChoices(choices, state, self);
+        addEscapeChoice(choices, state, self);
+        addHealingChoice(choices, state, self);
+        addPowerUpChoice(choices, state, self);
+        addChaseChoices(choices, state, self);
+
+        Choice best = chooseBest(choices);
+        if (best != null) {
+            return best.action;
+        }
+        return Action.defend();
+    }
+
+    private boolean isInSeriousDanger(GameState state, UnitInfo self) {
+        int incomingDamage = incomingDamageAt(state, self, self.getPosition());
+        int threatCount = threatCountAt(state, self, self.getPosition(), 1);
+
+        if (self.getHealth() <= incomingDamage + 8) {
+            return true;
+        }
+        if (threatCount >= 2 && unitRate.unitHealthRate(self) <= 0.65) {
+            return true;
+        }
+        return incomingDamage >= self.getHealth() * 0.45;
+    }
+
+    private boolean hasCombatAdvantage(UnitInfo self) {
+        return self.getAttackPower() >= 15 || self.getRange() >= 2;
+    }
+
+    private Action escapeAction(GameState state, UnitInfo self) {
+        Direction bestDirection = null;
+        double bestScore = -9999;
+
+        Direction[] directions = Direction.values();
+        for (Direction direction : directions) {
+            Position next = self.getPosition().move(direction);
+            if (!state.isOpen(next)) {
+                continue;
+            }
+
+            double score = safetyScoreAt(state, self, next);
+            if (bestDirection == null || score > bestScore) {
+                bestDirection = direction;
+                bestScore = score;
+            }
+        }
+
+        if (bestDirection == null) {
+            return Action.defend();
+        }
+        return Action.move(bestDirection);
+    }
+
+    private double safetyScoreAt(GameState state, UnitInfo self, Position position) {
+        int incomingDamage = incomingDamageAt(state, self, position);
+        int threatCount = threatCountAt(state, self, position, 1);
+        int nearestEnemyDistance = nearestEnemyDistance(state, self, position);
+
+        double score = nearestEnemyDistance * 8.0 - incomingDamage * 5.0 - threatCount * 18.0;
+        if (state.isHealingPoint(position)) {
+            score += 12;
+        }
+        return score;
+    }
+
+    private int incomingDamageAt(GameState state, UnitInfo self, Position position) {
+        int damage = 0;
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            if (position.distanceTo(enemy.getPosition()) <= enemy.getRange()) {
+                damage += enemy.getAttackPower();
+            }
+        }
+        return damage;
+    }
+
+    private int threatCountAt(GameState state, UnitInfo self, Position position, int extraRange) {
+        int count = 0;
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            if (position.distanceTo(enemy.getPosition()) <= enemy.getRange() + extraRange) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int nearestEnemyDistance(GameState state, UnitInfo self, Position position) {
+        int nearest = 9999;
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            int distance = position.distanceTo(enemy.getPosition());
+            if (distance > 0 && distance < nearest) {
+                nearest = distance;
+            }
+        }
+        return nearest;
+    }
+    //五个待选动作
+    private void addAttackChoices(ArrayList<Choice> choices, GameState state, UnitInfo self) {
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            if (self.distanceTo(enemy) > self.getRange()) {
+                continue;
+            }
+
+            double healthRate = unitRate.unitHealthRate(self);
+            double score = 0.65 + unitRate.attackValue(self, enemy) * 0.12;
+            if (self.getAttackPower() >= enemy.getHealth()) {
+                score = 1.6 + unitRate.attackValue(self, enemy) * 0.08;
+            }
+            if (isInSeriousDanger(state, self) && self.getAttackPower() < enemy.getHealth()) {
+                score -= 0.55;
+            }
+            if (healthRate <= 0.30) {
+                score -= 0.25;
+            }
+            if (hasCombatAdvantage(self)) {
+                score += 0.12;
+            }
+
+            choices.add(new Choice(Action.attack(enemy.getId()), score));
+        }
+    }
+
+    private void addEscapeChoice(ArrayList<Choice> choices, GameState state, UnitInfo self) {
+        //附近没有不选
+        UnitInfo nearestEnemy = state.findNearestEnemy(self);
+        if (nearestEnemy == null) {
+            return;
+        }
+        //
+        double healthRate = unitRate.unitHealthRate(self);
+        if (!isInSeriousDanger(state, self)) {
+            return;
+        }
+
+        double danger = dangerAround(state, self);
+        double score = 1.05 + (1.0 - healthRate) * 0.75 + danger * 0.10;
+        if (state.isHealingPoint(self.getPosition())) {
+            score -= 0.20;
+        }
+
+        Action action = escapeAction(state, self);
+        if (action.getType() == ActionType.MOVE) {
+            choices.add(new Choice(action, score));
+        }
+    }
+
+    private void addHealingChoice(ArrayList<Choice> choices, GameState state, UnitInfo self) {
+        Position healingPoint = state.findNearestHealingPoint(self);
+        if (healingPoint == null || self.getHealth() >= self.getMaxHealth()) {
+            return;
+        }
+
+        double healthRate = unitRate.unitHealthRate(self);
+        if (healthRate > 0.65 && !self.getPosition().equals(healingPoint)) {
+            return;
+        }
+
+        int missingHealth = self.getMaxHealth() - self.getHealth();
+        int distance = self.distanceTo(healingPoint);
+        double score = 0.40 + missingHealth / (double) self.getMaxHealth() * 0.85 - distance * 0.06;
+
+        if (healthRate <= 0.35) {
+            score += 0.35;
+        } else if (healthRate <= 0.55) {
+            score += 0.15;
+        }
+        if (isInSeriousDanger(state, self)) {
+            score -= 0.20;
+        }
+
+        Action action;
+        if (self.getPosition().equals(healingPoint)) {
+            score += 0.20;
+            action = Action.defend();
+        } else {
+            action = moveToPosition(state, self, healingPoint, null);
+        }
+
+        choices.add(new Choice(action, score));
+    }
+
+    private void addPowerUpChoice(ArrayList<Choice> choices, GameState state, UnitInfo self) {
+        Position powerUp = state.findNearestPowerUp(self);
+        if (powerUp == null) {
+            return;
+        }
+
+        int distance = self.distanceTo(powerUp);
+        if (distance > 8 && hasCombatAdvantage(self)) {
+            return;
+        }
+
+        double score = 0.55 - distance * 0.07;
+        if (distance <= 3) {
+            score += 0.25;
+        }
+        if (!hasCombatAdvantage(self)) {
+            score += 0.30;
+        }
+        if (isInSeriousDanger(state, self)) {
+            if (distance <= 2) {
+                score += 0.65;
+            } else {
+                score -= 0.40;
+            }
+        }
+
+        choices.add(new Choice(moveToPosition(state, self, powerUp, null), score));
+    }
+
+    private void addChaseChoices(ArrayList<Choice> choices, GameState state, UnitInfo self) {
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            int distance = self.distanceTo(enemy);
+            double score = 0.35 + unitRate.attackValue(self, enemy) * 0.18 - distance * 0.04;
+            if (hasCombatAdvantage(self)) {
+                score += 0.35;
+            }
+            if (isInSeriousDanger(state, self)) {
+                score -= 0.65;
+            } else if (unitRate.unitHealthRate(self) <= 0.45) {
+                score -= 0.25;
+            }
+
+            choices.add(new Choice(moveToPosition(state, self, enemy.getPosition(), enemy), score));
+        }
+    }
+    //
+    private Choice chooseBest(ArrayList<Choice> choices) {
+        Choice best = null;
+        for (Choice choice : choices) {
+            if (best == null || choice.score > best.score) {
+                best = choice;
+            }
+        }
+        return best;
+    }
+
+    private double dangerAround(GameState state, UnitInfo self) {
+        double danger = 0;
+        ArrayList<UnitInfo> enemies = state.getLivingEnemies(self);
+        for (UnitInfo enemy : enemies) {
+            int distance = self.distanceTo(enemy);
+            if (distance <= enemy.getRange()) {
+                danger += 2.0 + enemy.getAttackPower() / 8.0;
+            } else if (distance <= enemy.getRange() + 1) {
+                danger += 1.0;
+            }
+        }
+        return danger;
+    }
+
+    private static class Choice {
+        private final Action action;
+        private final double score;
+
+        private Choice(Action action, double score) {
+            this.action = action;
+            this.score = score;
+        }
+    }
+}
+
+class unitRate{
+    static double unitHealthRate(UnitInfo self){
+        return (double) self.getHealth() / self.getMaxHealth();
+    }
+    static double unitThreat(UnitInfo self) {
+        double healthRate = (double) self.getHealth() / self.getMaxHealth();
+        double attackRate = (double) self.getAttackPower() / 11.0;
+        double rangeRate = (double) self.getRange() / 1.0;
+        return healthRate * attackRate * rangeRate;
+    }
+    static double unitWeakness(UnitInfo self) {
+        double missingHealthRate = 1.0 - (double) self.getHealth() / self.getMaxHealth();
+        double defendRate = 1.0;
+        if (self.isDefending()) {
+            defendRate = 0.5;
+        }
+        return missingHealthRate * defendRate;
+    }
+    static double attackValue(UnitInfo self, UnitInfo enemy) {
+        double threat = unitThreat(enemy);
+        double weakness = unitWeakness(enemy);
+        double disPunish = self.distanceTo(enemy) * 0.15;
+        //如果可以秒掉敌人就加大分
+        double lethalBonus = 0;
+        if (self.getAttackPower() >= enemy.getHealth()) {
+            lethalBonus = 1.5;
+        }
+        //优先
+        return weakness * 2.0 + threat * 0.8 + lethalBonus - disPunish;
+    }
+    //给astar计算敌人附近格子的额外代价的工具方法
+    static int enemyBlockCost(UnitInfo self, UnitInfo enemy, double dist, int alertRadius) {
+        //敌人位置的代价计算
+        double selfThreat = unitThreat(self);
+        double enemyThreat = unitThreat(enemy);
+
+        double relativeThreat = enemyThreat / Math.max(0.1, selfThreat);
+        double distanceCost = alertRadius - dist + 1;
+
+        return (int) (distanceCost * relativeThreat * 3);
+    }
+}
+
+class AStar{
+    private final int[][] grid;
+    private final int rows;
+    private final int cols;
+
+    private int extraR = 0;
+    private GameState state;
+    private UnitInfo self;
+    private UnitInfo ignoreEnemy;
+    private final ArrayList<UnitInfo> enemies;
+    //
+    public AStar(GameState state, UnitInfo self, UnitInfo ignoreEnemy){
+        //写入工具
+        this.state = state;
+        this.self = self;
+        this.ignoreEnemy = ignoreEnemy;
+        this.enemies = state.getLivingEnemies(self);
+        //写入地图范围
+        this.rows = state.getRows();
+        this.cols = state.getCols();
+        //初始化地图list
+        grid = new int[rows][cols];
+        //初始化
+        initialMap();
+    }
+    private void initialMap() {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                Position curPos = new Position(row, col);
+                boolean curIsIgnEnemy = ignoreEnemy != null && ignoreEnemy.getRow() == row && ignoreEnemy.getCol() == col;
+                if ((state.isOccupied(curPos) || state.isWall(curPos)) && !curIsIgnEnemy) {
+                    grid[row][col] = -1;
+                } else {
+                    grid[row][col] = 1;
+                }
+            }
+        }
+        //将自己设为1，因为isOccupied会把自己也返回
+        grid[self.getRow()][self.getCol()] = 1;
+    }
+    public void addEnemyCost(){
+        //可以给自己设一个半径，在这个半径内如果碰到敌人了，就要重新计算路线，否则按照计算好的路走，避免过度计算。这个半径要参考场上敌人的最大攻击range
+        for (UnitInfo enemy : enemies) {
+            //是忽略的则跳过
+            if (ignoreEnemy != null && ignoreEnemy.getId() == enemy.getId()){
+                continue;
+            }
+            //在敌人周围半径的方块内遍历，减小计算
+            //ar设置是基础的攻击范围+额外警戒
+            int aR = enemy.getRange() + extraR;
+            for (int row = Math.max(0, enemy.getRow() - aR); row <= Math.min(grid.length - 1, enemy.getRow() + aR); row++){
+                for (int col = Math.max(0, enemy.getCol() - aR); col <= Math.min(grid[0].length - 1, enemy.getCol() + aR); col++){
+                    //不能走跳过
+                    if (grid[row][col] == -1) {
+                        continue;
+                    }
+                    //可以则加权
+                    double dist = calcDistance(enemy.getRow(), enemy.getCol(), row, col);
+                    if (dist <= aR) {
+                        int cost = unitRate.enemyBlockCost(self, enemy, dist, aR);
+                        grid[row][col] += cost;
+                    }
+                }
+            }
+        }
+    }
+    public Block findPath(Position start, Position goal){
+        //开始给goal如果是敌人改成1
+        int originalGoalCost = grid[goal.getRow()][goal.getCol()];
+        if (originalGoalCost == -1 && !state.isWall(goal)) {
+            grid[goal.getRow()][goal.getCol()] = 1;
+        }
+        //初始化优先队列
+        PriorityQueue<Block> frontier = new PriorityQueue<>(
+                Comparator.comparingInt(Block::getFCost)
+        );
+        //走到这个格子需要的地图格子本身代价累计
+        int[][] blockStep = new int[rows][cols];
+        //全填充max，表示没走过
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                blockStep[row][col] = Integer.MAX_VALUE;
+            }
+        }
+        //创建初始block
+        Block startBlock = new Block(
+                start.getRow(),
+                start.getCol(),
+                0,
+                calcDistance(start.getRow(), start.getCol(), goal.getRow(), goal.getCol()),
+                null);
+        //给优先队列和step列表初始化
+        frontier.add(startBlock);
+        blockStep[start.getRow()][start.getCol()] = 0;
+        //astar主循环
+        while (!frontier.isEmpty()) {
+            Block current = frontier.poll();
+            if (current.getRow() == goal.getRow() && current.getCol() == goal.getCol()) {
+                //计算完再把代价改回去
+                grid[goal.getRow()][goal.getCol()] = originalGoalCost;
+                return current;
+            }
+            //当前格子四周尝试添加
+            tryAdd(frontier, blockStep, current, goal, -1, 0);
+            tryAdd(frontier, blockStep, current, goal, 1, 0);
+            tryAdd(frontier, blockStep, current, goal, 0, -1);
+            tryAdd(frontier, blockStep, current, goal, 0, 1);
+        }
+        //计算完再把代价改回去
+        grid[goal.getRow()][goal.getCol()] = originalGoalCost;
+        //能取的格子取光了才结束，那就是没有结果，寻路失败
+        return null;
+    }
+    private void tryAdd(
+            PriorityQueue<Block> frontier,
+            int[][] blockStep,
+            Block current,
+            Position goal,
+            int rowChange,
+            int colChange) {
+        //四周新格子坐标
+        int nextRow = current.getRow() + rowChange;
+        int nextCol = current.getCol() + colChange;
+        //断言1，超出地图范围停止
+        if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) {
+            return;
+        }
+        //断言2，不能走，比如墙和玩家，停止
+        if (grid[nextRow][nextCol] == -1) {
+            return;
+        }
+        //获取step list里的当前值
+        int newGCost = current.getGCost() + grid[nextRow][nextCol];
+        //如果这次蔓延的step更多，说明已经有的已经是代价更小的路了，也不用覆盖，停止
+        if (newGCost >= blockStep[nextRow][nextCol]) {
+            return;
+        }
+        //都没问题开始写入
+        blockStep[nextRow][nextCol] = newGCost;
+        //创建这个位置的block实例
+        Block next = new Block(
+                nextRow,
+                nextCol,
+                newGCost,
+                calcDistance(nextRow, nextCol, goal.getRow(), goal.getCol()),
+                current
+        );
+        frontier.add(next);
+    }
+    private static int calcDistance(int row1, int col1, int row2, int col2) {
+        return Math.abs(row1 - row2) + Math.abs(col1 - col2);
+    }
+}
+
+class Block {
+    private final int row;
+    private final int col;
+    private final int gCost;
+    private final int hCost;
+    private final Block parent;
+
+    public Block(int row, int col, int gCost, int hCost, Block parent) {
+        this.row = row;
+        this.col = col;
+        this.gCost = gCost;
+        this.hCost = hCost;
+        this.parent = parent;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public int getCol() {
+        return col;
+    }
+
+    public int getGCost() {
+        return gCost;
+    }
+
+    public int getFCost() {
+        return gCost + hCost;
+    }
+
+    public Block getParent() {
+        return parent;
+    }
+}

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Warrior Arena</title>
+<style>
+:root { color-scheme: light; --ink:#1f2933; --muted:#5b6675; --line:#d9e1ea; --soft:#f6f8fb; --code:#f1f5f9; --brand:#1d5fa7; }
+body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",Arial,sans-serif; color:var(--ink); background:#eef3f7; line-height:1.7; }
+main { max-width:920px; margin:32px auto; background:white; padding:36px 44px; border:1px solid var(--line); box-shadow:0 12px 30px rgba(24,39,75,.08); }
+h1 { margin-top:0; font-size:2rem; color:#102a43; }
+h2 { margin-top:2rem; padding-top:.6rem; border-top:1px solid var(--line); color:#183b56; }
+h3 { color:#243b53; }
+a { color:var(--brand); text-decoration:none; }
+a:hover { text-decoration:underline; }
+code { font-family:Consolas,"Courier New",monospace; background:var(--code); padding:.12em .35em; border-radius:4px; }
+pre { background:#0f172a; color:#e2e8f0; padding:16px 18px; border-radius:8px; overflow:auto; line-height:1.55; }
+pre code { background:transparent; padding:0; color:inherit; }
+table { width:100%; border-collapse:collapse; margin:16px 0 22px; overflow:auto; display:table; }
+th,td { border:1px solid var(--line); padding:8px 10px; vertical-align:top; }
+th { background:var(--soft); text-align:left; }
+blockquote { border-left:4px solid var(--brand); margin:16px 0; padding:8px 16px; background:var(--soft); color:var(--muted); }
+li { margin:.25rem 0; }
+@media (max-width:720px) { main { margin:0; padding:24px 20px; border:0; box-shadow:none; } table { display:block; overflow-x:auto; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Java Warrior Arena</h1>
+<p>一个用 Java 编写的回合制策略竞技项目。你会在网格地图上控制自动战斗战士，通过代码决定它每一步移动、攻击、防御、抢道具或撤退。</p>
+<p>项目已经准备好地图、回合系统、图形界面、批量测试和评分统计。你主要修改：</p>
+<pre><code class="language-text">src/TeamAlphaWarrior.java</code></pre>
+<p>多个队伍策略放进同一个项目做 PK 时，每个队伍使用自己选择的唯一策略名。名称只能包含英文字母、数字和下划线，第一个字符必须是英文字母，文件名、<code>public class</code> 名和构造方法名三处一致。格式示例：<code>AuroraBlade.java</code> / <code>public class AuroraBlade extends Warrior</code> / <code>public AuroraBlade()</code>。</p>
+<h2>环境要求</h2>
+<ul>
+<li>JDK 17 或更高版本</li>
+<li>不需要下载游戏引擎</li>
+<li>不需要 Maven 或 Gradle</li>
+</ul>
+<h2>双击启动</h2>
+<p>Windows 中可以直接双击项目根目录的：</p>
+<pre><code class="language-text">启动仿真UI.bat</code></pre>
+<p>它会自动编译全部 Java 文件，并打开可视化仿真界面。编译失败时会保留错误信息窗口。</p>
+<p>macOS 中可以直接双击项目根目录的：</p>
+<pre><code class="language-text">启动仿真UI.command</code></pre>
+<p>如果 macOS 提示没有权限，打开“终端”，进入项目文件夹后执行一次：</p>
+<pre><code class="language-bash">chmod +x 启动仿真UI.command</code></pre>
+<p>之后再双击 <code>启动仿真UI.command</code> 即可。</p>
+<h2>VS Code 运行方式</h2>
+<p>用 VS Code 打开整个项目文件夹 <code>csa_warriors</code>，不要只打开单个 <code>.java</code> 文件。</p>
+<p>第一次使用时：</p>
+<ol>
+<li>安装 JDK 17 或更高版本。</li>
+<li>安装 VS Code 的 <code>Extension Pack for Java</code>。</li>
+<li>打开项目文件夹后，等待 VS Code 识别 Java 项目。</li>
+</ol>
+<p>运行方式：</p>
+<ul>
+<li>按 <code>Ctrl+Shift+B</code>：编译全部 Java 文件。</li>
+<li>打开“运行和调试”，选择 <code>Visual Debugger</code>：启动可视化调试界面。</li>
+<li>打开“运行和调试”，选择 <code>Console Match</code>：启动控制台比赛。</li>
+<li>也可以打开命令面板，运行 <code>Tasks: Run Task</code>，选择 <code>run visual debugger</code> 或 <code>run console match</code>。</li>
+</ul>
+<p>如果 VS Code 提示找不到 <code>javac</code> 或 <code>java</code>，说明 JDK 没有正确安装，或 JDK 的 <code>bin</code> 目录没有加入系统环境变量 <code>PATH</code>。</p>
+<h2>终端运行</h2>
+<p>图形界面：</p>
+<pre><code class="language-powershell">javac --release 17 -encoding UTF-8 -d out src\*.java
+java -cp out ArenaUiMain</code></pre>
+<p>控制台比赛：</p>
+<pre><code class="language-powershell">javac --release 17 -encoding UTF-8 -d out src\*.java
+java -cp out Main</code></pre>
+<h2>可视化调试界面</h2>
+<p>项目提供 Swing 图形界面，不需要额外下载 UI 引擎。</p>
+<p>默认调试地图中，红队两名战士使用 <code>TeamAlphaWarrior</code>，其他队伍使用 <code>AllianceEncirclingWarrior</code>。修改并重新编译 <code>TeamAlphaWarrior.java</code> 后，直接点击“下一步”即可观察新策略。</p>
+<ul>
+<li>彩色网格地图</li>
+<li>墙、治疗点、队伍位置显示</li>
+<li>战士生命条</li>
+<li>最近一次行动的战士高亮</li>
+<li>动作动画：移动轨迹、攻击连线、防御光圈、拾取道具光圈</li>
+<li>单步策略调试：显示当前战士的生命、攻击、范围、场上单位生命值、返回行动和策略追踪信息</li>
+<li>点击地图上的战士查看详细属性</li>
+<li>“下一步”逐个战士调试 <code>chooseAction</code></li>
+<li>“下一回合”快速推进一整轮</li>
+<li>“自动播放”观察策略整体表现</li>
+<li>战斗日志和单位状态实时更新</li>
+<li>“项目文件”标签页可以打开策略模板、示例策略和指南</li>
+<li>可以在界面内编译代码，并在编译成功后重启界面加载新策略</li>
+<li>“队内 PK”标签页可以给每队 A/B 两名战士分别选择策略，组织内部比赛</li>
+<li>“批量连测”标签页可以输入轮数 N，后台连续运行 N 局并汇总胜负、得分和细项数据</li>
+<li>连测完成后点击“查看得分细节”，在窗口中选择队伍，查看类别分数图和每局分项得分</li>
+<li>在得分细节窗口选中某一局并点击“回放选中局”，可以回看最近一次连测缓存中的完整对局</li>
+</ul>
+<h2>项目结构</h2>
+<pre><code class="language-text">src/
+  Main.java                 控制台比赛入口
+  ArenaUiMain.java          Swing 可视化调试入口
+  ArenaFrame.java           调试窗口
+  ArenaPanel.java           地图绘制面板
+  ArenaFactory.java         默认比赛配置
+
+  Warrior.java              策略父类
+  Action.java               行动对象
+  Direction.java            移动方向
+  GameState.java            当前局面
+  UnitInfo.java             战士公开信息
+  Position.java             坐标位置
+
+  TeamAlphaWarrior.java     主要修改的策略模板
+  AllianceEncirclingWarrior.java 合作基准策略
+
+  GameEngine.java           游戏引擎
+  GameMap.java              地图
+  ActionResolver.java       行动解析
+  Renderer.java             控制台显示
+  VictoryChecker.java       胜负判定
+  Team.java                 队伍
+  Unit.java                 内部单位状态
+  PowerUp.java              辅助道具
+  PowerUpType.java          辅助道具类型
+  ScoreConfig.java          评分参数
+  ScoreTracker.java         评分统计</code></pre>
+<h2>游戏规则</h2>
+<ul>
+<li>地图是二维网格。</li>
+<li>格子类型有普通地面、墙、治疗点。</li>
+<li>支持 4 个队伍，默认每队 2 个战士。</li>
+<li>默认比赛中，红队读取 <code>TeamAlphaWarrior</code>，蓝队、绿队、黄队读取 <code>AllianceEncirclingWarrior</code>。</li>
+<li>每个回合中，队伍按顺序行动，每个存活战士行动一次。</li>
+<li>比赛没有固定总回合上限。</li>
+<li>如果连续 30 个完整回合没有任何状态变化，比赛触发无进展判负并结束。</li>
+<li>状态变化包括单位位置、生命、存活状态、防御状态、攻击/范围数值、地图道具位置或类型变化。</li>
+<li>行动支持 <code>MOVE</code>、<code>ATTACK</code>、<code>DEFEND</code>、<code>STAY</code>。</li>
+<li>治疗点会自动恢复 8 点生命值。</li>
+<li>地图上会随机刷新辅助道具。</li>
+<li><code>H</code> / Health Pack：恢复生命值。</li>
+<li><code>A</code> / Attack Gem：增加攻击力。</li>
+<li><code>L</code> / Range Lens：增加攻击范围。</li>
+<li><code>M</code> / Mega Health：大量恢复生命值。</li>
+<li><code>P</code> / Power Core：大幅增加攻击力。</li>
+<li><code>C</code> / Battle Core：恢复生命，同时增加攻击力和攻击范围。</li>
+<li>默认开局生成 5 个道具，后续低频随机刷新，最多同时存在 5 个道具。</li>
+<li>新道具会尽量刷新在距离所有存活战士至少 3 格的位置；强力道具至少 4 格。</li>
+<li>强力道具总概率较低，主要作为阶段性争夺目标。</li>
+<li>攻击目标在范围内时造成固定伤害。</li>
+<li>如果目标正在防御，本次伤害减半。</li>
+<li>当生命值小于等于 0 时，战士被击败。</li>
+<li>如果策略代码返回 <code>null</code> 或抛出异常，本回合自动 <code>STAY</code>。</li>
+</ul>
+<h2>调试流程</h2>
+<ol>
+<li>先运行 <code>ArenaUiMain</code>。</li>
+<li>点击“下一步”，观察一个战士本回合做了什么。</li>
+<li>先看“单步策略调试”，确认 <code>self.getHealth()</code>、最近敌人、范围内目标和场上生命值。</li>
+<li>需要观察某行判断时，在策略代码中加入 <code>state.trace(...)</code> 或 <code>state.traceValue(...)</code>。</li>
+<li>再看地图动画和战斗日志。</li>
+<li>点击某个战士，查看它的生命、攻击力、范围、加成和位置。</li>
+<li>判断 <code>chooseAction</code> 是否符合预期。</li>
+<li>修改自己的策略后，重新编译并运行 UI。</li>
+</ol>
+<h2>策略追踪</h2>
+<p>在 <code>chooseAction</code> 中可以加入追踪语句。追踪内容只显示当前这一步，下一步会自动清空。</p>
+<pre><code class="language-java">state.trace("进入低血量判断");
+state.traceValue("self.getHealth()", self.getHealth());
+state.traceUnit("enemy", enemy);</code></pre>
+<p>战斗日志只保留当前这一局；重置或载入新比赛后，旧日志会被清空。</p>
+<h2>最小策略代码</h2>
+<pre><code class="language-java">public class TeamAlphaWarrior extends Warrior {
+    public TeamAlphaWarrior() {
+        super(&quot;Team Alpha&quot;);
+    }
+
+    @Override
+    public Action chooseAction(GameState state, UnitInfo self) {
+        UnitInfo enemy = state.findNearestEnemy(self);
+
+        if (enemy == null) {
+            return Action.stay();
+        }
+
+        if (self.distanceTo(enemy) &lt;= self.getRange()) {
+            return Action.attack(enemy.getId());
+        }
+
+        return state.moveToward(self, enemy.getPosition());
+    }
+}</code></pre>
+<h2>评分系统</h2>
+<p>项目包含综合评分系统，不只看最后谁获胜。</p>
+<p>评分会统计：</p>
+<ul>
+<li>造成伤害</li>
+<li>击败敌人</li>
+<li>拾取道具</li>
+<li>有效回血</li>
+<li>存活回合</li>
+<li>最终存活</li>
+<li>胜利奖励</li>
+<li>无效行动扣分</li>
+<li>连续无进展扣分</li>
+</ul>
+<p>总评分按 100% 计算：</p>
+<table>
+<thead><tr><th>评分项目</th><th>占比</th></tr></thead>
+<tbody>
+<tr><td>代码能运行</td><td>15%</td></tr>
+<tr><td>Java 基础使用</td><td>20%</td></tr>
+<tr><td>策略设计</td><td>25%</td></tr>
+<tr><td>测试与修改记录</td><td>15%</td></tr>
+<tr><td>比赛综合评分</td><td>15%</td></tr>
+<tr><td>代码讲解</td><td>10%</td></tr>
+</tbody></table>
+<p>独立完成是提交前提。不要使用生成式工具、代码代写工具或他人生成的完整策略代码。</p>
+<p>评分参数集中在 <a href="src/ScoreConfig.java">ScoreConfig.java</a>，参数说明见 <a href="ScoringGuide.html">评分参数表</a>。</p>
+<p>完整操作说明见 <a href="Guide.html">使用指南</a>。</p>
+</main>
+</body>
+</html>

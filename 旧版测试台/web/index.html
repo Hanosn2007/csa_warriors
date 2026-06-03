@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSA Warriors Web Debugger</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="controls">
+      <button id="stepBtn">下一步</button>
+      <button id="roundBtn">下一回合</button>
+      <button id="autoBtn">自动播放</button>
+      <button id="resetBtn">重置</button>
+    </div>
+    <div class="status">
+      <strong id="roundText">当前回合</strong>
+      <span id="resultText">加载中</span>
+    </div>
+    <label class="speed">
+      <span>速度</span>
+      <input id="speedRange" type="range" min="100" max="1200" value="500">
+    </label>
+  </header>
+
+  <main class="app">
+    <section class="boardPane">
+      <div id="board" class="board"></div>
+      <div class="legend">
+        <span><i class="tile wall"></i>墙</span>
+        <span><i class="tile heal"></i>治疗点</span>
+        <span><i class="dot health"></i>回血</span>
+        <span><i class="dot attack"></i>攻击</span>
+        <span><i class="dot range"></i>射程</span>
+        <span><i class="dot core"></i>核心</span>
+      </div>
+    </section>
+
+    <aside class="sidePane">
+      <nav class="tabs">
+        <button class="tab active" data-tab="debug">调试</button>
+        <button class="tab" data-tab="score">状态评分</button>
+        <button class="tab" data-tab="match">队内 PK</button>
+        <button class="tab" data-tab="batch">批量连测</button>
+        <button class="tab" data-tab="project">项目文件</button>
+        <button class="tab" data-tab="utility">效用曲线</button>
+      </nav>
+
+      <section class="tabPage active" id="debug">
+        <div class="panel">
+          <h2>策略意图</h2>
+          <pre id="intentText"></pre>
+        </div>
+        <div class="panel">
+          <h2>战斗日志</h2>
+          <pre id="logText"></pre>
+        </div>
+        <div class="panel">
+          <h2>A* 调试</h2>
+          <pre id="pathDebugText">点击单位显示热力图，再点目标格显示路线。</pre>
+          <button id="clearPathBtn">清除显示</button>
+        </div>
+      </section>
+
+      <section class="tabPage" id="score">
+        <div class="panel">
+          <h2>评分报告</h2>
+          <table id="scoreTable"></table>
+        </div>
+        <div class="panel">
+          <h2>单位状态</h2>
+          <table id="unitTable"></table>
+        </div>
+        <div class="panel">
+          <h2>选中单位</h2>
+          <pre id="selectedText">点击地图上的战士查看详情。</pre>
+        </div>
+      </section>
+
+      <section class="tabPage" id="match">
+        <div class="panel">
+          <h2>队内 PK</h2>
+          <div class="formGrid teamConfig" id="matchConfig"></div>
+          <div class="inlineControls">
+            <input id="matchCount" type="number" min="1" max="500" value="20">
+            <button id="loadMatchBtn">载入到仿真</button>
+            <button id="runMatchBtn">后台连测</button>
+            <button id="refreshStrategiesBtn">刷新策略</button>
+            <button id="openSrcBtn">打开策略文件夹</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>PK 结果</h2>
+          <div id="matchProgress" class="batchProgress" hidden><i></i><span></span></div>
+          <table id="matchTable"></table>
+          <div id="matchChart" class="barChart"></div>
+          <pre id="matchDetail"></pre>
+        </div>
+      </section>
+
+      <section class="tabPage" id="batch">
+        <div class="panel">
+          <h2>默认配置连测</h2>
+          <div class="inlineControls">
+            <input id="defaultBatchCount" type="number" min="1" max="500" value="20">
+            <button id="runDefaultBatchBtn">开始连测</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>连测结果</h2>
+          <div id="batchProgress" class="batchProgress" hidden><i></i><span></span></div>
+          <table id="batchTable"></table>
+          <div id="batchChart" class="barChart"></div>
+          <pre id="batchDetail"></pre>
+        </div>
+      </section>
+
+      <section class="tabPage" id="project">
+        <div class="panel">
+          <h2>项目文件</h2>
+          <div class="inlineControls">
+            <button id="refreshFilesBtn">刷新列表</button>
+            <button id="openProjectBtn">打开项目文件夹</button>
+            <button id="compileBtn">编译代码</button>
+            <button id="compileRestartBtn">编译并重启界面</button>
+          </div>
+          <div id="fileList" class="fileList"></div>
+        </div>
+        <div class="panel">
+          <h2>输出</h2>
+          <pre id="projectOutput"></pre>
+        </div>
+      </section>
+
+      <section class="tabPage" id="utility">
+        <div class="panel">
+          <h2>效用曲线</h2>
+          <div class="curveControls">
+            <label>回血阈值 <input id="healthMid" type="range" min="10" max="90" value="50"></label>
+            <label>曲线强度 <input id="healthSteep" type="range" min="1" max="12" value="6"></label>
+          </div>
+          <svg id="curveSvg" viewBox="0 0 360 180" role="img"></svg>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <div id="unitTooltip" class="unitTooltip" hidden></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
