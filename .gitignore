@@ -1,4 +1,6 @@
 out/
+**/out/
+**/output/
 *.class
 .DS_Store
 nul
